@@ -1,0 +1,16 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Mes articles{% endblock %}
+
+{% block body %}
+    <h2>
+        Articles
+    </h2>
+    <ul>
+        {% for article in articles %}
+            {% if(article['title'] is not same as 'Titre 2') %}
+                <li>{{ article['title'] }} par {{ article['author'] }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endblock %}
