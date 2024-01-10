@@ -7,6 +7,7 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 class DefaultController extends AbstractController {
@@ -15,7 +16,8 @@ class DefaultController extends AbstractController {
         "/",
         "home_page"
     )]
-    public function index() {
+    public function index() : Response
+    {    
         return $this->render("hello.html.twig");
     }
 
@@ -26,7 +28,6 @@ class DefaultController extends AbstractController {
     )]
     public function signin(
         Request $request,
-        UserRepository $userRepository,
         EntityManagerInterface $manager
     ) 
     {
@@ -40,11 +41,91 @@ class DefaultController extends AbstractController {
                 ->setPassword($data['password']);
             $manager->persist($user);
             $manager->flush();
-            dd($data, $user);
         }
 
         return $this->render("signin.html.twig", [
-            'form' => $form->createView()
+            'form' => $form
+        ]);
+    }
+
+    /**
+     * Get user details
+     */
+    #[Route(
+        "/user/{id}",
+        name: 'user_page',
+        methods: ['GET'],
+        requirements: ["id" => "\d+"]
+    )]
+    public function read(
+        $id,
+        UserRepository $repository
+    ) 
+    {
+        $user = $repository->find((int)$id);
+        return $this->render("user_details.html.twig", [
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * Edit user details
+     */
+    #[Route(
+        "/user/{id}/edit",
+        name: 'user_edit',
+        methods: ['GET','POST'],
+        requirements: ['id' => '\d+']
+    )]
+    public function edit(
+        $id,
+        Request $request,
+        UserRepository $repository,
+        EntityManagerInterface $manager
+    ) : Response
+    {
+
+        $user = $repository->find((int)$id);
+        $form = $this->createForm(UserType::class, $user);
+
+        $form->handleRequest($request);
+        if($form->isSubmitted() && $form->isValid()) {
+            $user = $form->getData();
+            $manager->flush();
+        }
+
+        return $this->render("user_edit.html.twig", [
+            "form" => $form
+        ]);
+
+    }
+
+    /**
+     * Delete user
+     */
+    #[Route(
+        "/user/{id}/delete",
+        name: "user_delete",
+        methods: ['GET'],
+        requirements: ["id"=>"\d+"]
+    )]
+    public function delete(
+        $id,
+        UserRepository $repository,
+        Request $request,
+        EntityManagerInterface $manager
+    )
+    {
+        $user = $repository->find((int)$id);
+        if($request->query->get('method') === "DELETE") 
+        {
+            $manager->remove($user);
+            $manager->flush();
+            $this->redirectToRoute('home_page');
+        }
+
+        return $this->render("user_details.html.twig", [
+            'user' => $user
         ]);
     }
 
