@@ -1,10 +1,11 @@
 <?php
 namespace App\Controller;
 
+use App\Entity\User;
+use App\Form\UserType;
+use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\Extension\Core\Type\EmailType;
-use Symfony\Component\Form\Extension\Core\Type\PasswordType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -15,13 +16,34 @@ class DefaultController extends AbstractController {
         "home_page"
     )]
     public function index() {
-        $form = $this->createFormBuilder()
-        ->add('email', EmailType::class)
-        ->add('password', PasswordType::class)
-        ->add('submit', SubmitType::class)
-        ->getForm();
+        return $this->render("hello.html.twig");
+    }
 
-        return $this->render("hello.html.twig", [
+    #[Route(
+        "/signin",
+        name: "signin_page",
+        methods: ['GET', 'POST']
+    )]
+    public function signin(
+        Request $request,
+        UserRepository $userRepository,
+        EntityManagerInterface $manager
+    ) 
+    {
+        $form = $this->createForm(UserType::class);
+        $form->handleRequest($request);
+        if($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            $user = new User();
+            $user
+                ->setEmail($data['email'])
+                ->setPassword($data['password']);
+            $manager->persist($user);
+            $manager->flush();
+            dd($data, $user);
+        }
+
+        return $this->render("signin.html.twig", [
             'form' => $form->createView()
         ]);
     }
@@ -32,7 +54,8 @@ class DefaultController extends AbstractController {
         methods:["POST", "GET"], 
         requirements: ['id' => "\d+"]
     )]
-    public function hello() {
+    public function hello() 
+    {
         return $this->render("example.html.twig", [
             'articles' => [
                 [
